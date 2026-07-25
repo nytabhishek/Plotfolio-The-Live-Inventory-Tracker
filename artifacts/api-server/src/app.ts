@@ -56,8 +56,7 @@ app.use(
     store: new PgSession({
       pool,
       tableName: "session",
-      // Auto-create the session table if missing (handles fresh production DB)
-      createTableIfMissing: true,
+      createTableIfMissing: false,
       // Prune expired sessions every hour
       pruneSessionInterval: 60 * 60,
     }),
