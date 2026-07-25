@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLoginCrm, useLoginRm, useGetMe } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,6 +26,7 @@ export default function LoginPage() {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
+  const queryClient = useQueryClient();
   const crmLogin = useLoginCrm();
   const salesLogin = useLoginRm();
 
@@ -48,7 +50,8 @@ export default function LoginPage() {
 
   const onCrmSubmit = (data: z.infer<typeof crmSchema>) => {
     crmLogin.mutate({ data }, {
-      onSuccess: () => {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
         setLocation('/crm');
       },
       onError: (err) => {
@@ -57,9 +60,10 @@ export default function LoginPage() {
     });
   };
 
-  const onSalesSubmit = (data: z.infer<typeof salesSchema>) => {
+ const onSalesSubmit = (data: z.infer<typeof salesSchema>) => {
     salesLogin.mutate({ data }, {
-      onSuccess: () => {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
         setLocation('/sales');
       },
       onError: (err) => {
