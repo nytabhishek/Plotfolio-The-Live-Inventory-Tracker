@@ -1,3 +1,4 @@
+<div align="center"> <!-- 🖼️ LOGO / BANNER Replace the src below with your own banner image once uploaded. See "HOW TO ADD IMAGES" notes at the bottom of this file. --> <img src="./docs/images/banner.png" alt="Dream Valley Banner" width="100%" />
 🏢 Dream Valley — Live Inventory Tracker
 
 A full-stack real estate plot inventory & CRM system, built to track plot availability, sales-rep activity, and admin operations in real time.
@@ -99,3 +100,5 @@ Production session storage: Diagnosed and fixed a session-store initialization b
 📬 Contact
 
 Abhishek Vishwakarma LinkedIn
+
+</div>
