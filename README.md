@@ -20,10 +20,35 @@ This project was built end-to-end: designing the database schema, building the A
 ✨ Features
 🔐 Dual authentication system — separate login flows for Sales Reps (RM Code) and CRM Admins (email/password)
 🏘️ Real-time plot inventory — track plot number, dimensions, area, facing direction, and status
-📊 Activity logging — every plot update is tracked with an audit trail (who changed what, and when)
-🔄 Live status updates — Available / Sold / On Hold, reflected instantly across the dashboard
+➕ Add & manage plots — register new plots with full specifications (dimensions, area, facing, PLC type)
+🔑 RM Code management — CRM admins can create and manage sales personnel access codes
+📊 Activity logging — every plot update is tracked with a full audit trail (who changed what, and when)
+🔄 Live status updates — Available / Allotted / Freeze / Hold, reflected instantly across the dashboard
+📤 Excel export — one-click export of the full inventory
 🖥️ Single unified deployment — frontend and backend served from one origin for security and simplicity
-<!-- 🎬 SCREENSHOTS / GIF DEMO This is the single highest-impact addition you can make. See "HOW TO ADD IMAGES" section below for exact steps. --> <div align="center"> <img src="./docs/images/login-screen.png" alt="Login Screen" width="45%" /> <img src="./docs/images/dashboard.png" alt="Dashboard" width="45%" /> </div>
+📸 Screenshots
+<div align="center">
+Sales Rep Login & Dashboard
+<img src="./docs/images/sales-login.png" alt="Sales Login" width="48%" /> <img src="./docs/images/sales-dashboard.png" alt="Sales Dashboard" width="48%" />
+
+Sales reps log in with a unique RM Code to view live, filterable plot availability.
+
+CRM Admin Login & Inventory Management
+<img src="./docs/images/crm-login.png" alt="CRM Admin Login" width="48%" /> <img src="./docs/images/inventory-management.png" alt="Inventory Management" width="48%" />
+
+Admins get a full command center: total/available/unavailable plot breakdowns and inline editing.
+
+Add Plot & RM Code Management
+<img src="./docs/images/add-plot.png" alt="Add New Plot" width="48%" /> <img src="./docs/images/rm-codes.png" alt="RM Codes Management" width="48%" />
+
+Register new plots with full specs, and manage sales rep access codes in one place.
+
+Activity Logs
+<img src="./docs/images/activity-logs.png" alt="Activity Logs" width="70%" />
+
+Every change is logged with a before/after diff and timestamp — a full audit trail.
+
+</div>
 🛠 Tech Stack
 Layer	Technology
 Frontend	React, Vite, TypeScript, TailwindCSS
