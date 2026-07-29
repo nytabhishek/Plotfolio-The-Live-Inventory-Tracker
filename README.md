@@ -1,4 +1,3 @@
-<div align="center"> <!-- 🖼️ LOGO / BANNER Replace the src below with your own banner image once uploaded. See "HOW TO ADD IMAGES" notes at the bottom of this file. --> <img src="./docs/images/banner.png" alt="Dream Valley Banner" width="100%" />
 🏢 Dream Valley — Live Inventory Tracker
 
 A full-stack real estate plot inventory & CRM system, built to track plot availability, sales-rep activity, and admin operations in real time.
@@ -30,22 +29,22 @@ This project was built end-to-end: designing the database schema, building the A
 📸 Screenshots
 <div align="center">
 Sales Rep Login & Dashboard
-<img src="./docs/images/sales-login.png" alt="Sales Login" width="48%" /> <img src="./docs/images/sales-dashboard.png" alt="Sales Dashboard" width="48%" />
+<img src="./sales-login.png" alt="Sales Login" width="48%" /> <img src="./sales-dashboard.png" alt="Sales Dashboard" width="48%" />
 
 Sales reps log in with a unique RM Code to view live, filterable plot availability.
 
 CRM Admin Login & Inventory Management
-<img src="./docs/images/crm-login.png" alt="CRM Admin Login" width="48%" /> <img src="./docs/images/inventory-management.png" alt="Inventory Management" width="48%" />
+<img src="./crm-login.png" alt="CRM Admin Login" width="48%" /> <img src="./inventory-management.png" alt="Inventory Management" width="48%" />
 
 Admins get a full command center: total/available/unavailable plot breakdowns and inline editing.
 
 Add Plot & RM Code Management
-<img src="./docs/images/add-plot.png" alt="Add New Plot" width="48%" /> <img src="./docs/images/rm-codes.png" alt="RM Codes Management" width="48%" />
+<img src="./add-plot.png" alt="Add New Plot" width="48%" /> <img src="./rm-codes.png" alt="RM Codes Management" width="48%" />
 
 Register new plots with full specs, and manage sales rep access codes in one place.
 
 Activity Logs
-<img src="./docs/images/activity-logs.png" alt="Activity Logs" width="70%" />
+<img src="./activity-logs.png" alt="Activity Logs" width="70%" />
 
 Every change is logged with a before/after diff and timestamp — a full audit trail.
 
@@ -100,5 +99,3 @@ Production session storage: Diagnosed and fixed a session-store initialization b
 📬 Contact
 
 Abhishek Vishwakarma LinkedIn
-
-</div>
