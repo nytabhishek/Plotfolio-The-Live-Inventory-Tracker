@@ -41,10 +41,10 @@ export function CrmLayout({ children }: { children: React.ReactNode }) {
       <aside className="w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col">
         <div className="p-6 border-b border-sidebar-border flex items-center gap-3">
           <div className="h-8 w-8 bg-sidebar-primary rounded flex items-center justify-center text-sidebar-primary-foreground font-bold font-mono">
-            DV
+            PF
           </div>
           <div>
-            <h1 className="font-semibold text-sidebar-foreground uppercase tracking-wider text-sm">Dream Valley</h1>
+            <h1 className="font-semibold text-sidebar-foreground uppercase tracking-wider text-sm">PlotFolio</h1>
             <p className="text-xs text-sidebar-foreground/60">Command Center</p>
           </div>
         </div>
