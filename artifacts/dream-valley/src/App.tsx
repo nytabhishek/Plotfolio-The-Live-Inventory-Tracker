@@ -6,6 +6,7 @@ import { Route, Switch, Router as WouterRouter } from 'wouter';
 
 import LoginPage from '@/pages/login';
 import CrmDashboard from '@/pages/crm-dashboard';
+import CrmProjects from '@/pages/crm-projects';
 import CrmAddPlot from '@/pages/crm-add-plot';
 import CrmRmCodes from '@/pages/crm-rm-codes';
 import CrmActivityLogs from '@/pages/crm-activity-logs';
@@ -29,6 +30,7 @@ function Router() {
     <Switch>
       <Route path="/" component={LoginPage} />
       <Route path="/crm" component={CrmDashboard} />
+      <Route path="/crm/projects" component={CrmProjects} />
       <Route path="/crm/add-plot" component={CrmAddPlot} />
       <Route path="/crm/rm-codes" component={CrmRmCodes} />
       <Route path="/crm/activity-logs" component={CrmActivityLogs} />
