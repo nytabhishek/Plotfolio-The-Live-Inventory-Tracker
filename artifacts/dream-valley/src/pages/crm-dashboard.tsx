@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useGetPlots, useGetPlotStats, useDeletePlot, getGetPlotsQueryKey, getGetPlotStatsQueryKey, Plot } from '@workspace/api-client-react';
+import { useProjects } from '@/hooks/use-projects';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CrmLayout } from '@/layouts/crm-layout';
 import { usePlotEvents } from '@/hooks/use-plot-events';
 import { Loader2, Download, Search, Edit2, Trash2, Map } from 'lucide-react';
@@ -27,6 +29,8 @@ export default function CrmDashboard() {
   
   const { data: stats, isLoading: statsLoading } = useGetPlotStats();
   const { data: plots, isLoading: plotsLoading } = useGetPlots();
+  const { data: projects } = useProjects();
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   
   const [plotToDelete, setPlotToDelete] = useState<number | null>(null);
@@ -57,9 +61,10 @@ export default function CrmDashboard() {
     }
   };
 
-  const filteredPlots = plots?.filter(p => 
-    p.plotNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPlots = plots?.filter(p => {
+    if (selectedProjectId !== 'all' && String((p as any).projectId) !== selectedProjectId) return false;
+    return p.plotNumber.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <CrmLayout>
@@ -106,7 +111,7 @@ export default function CrmDashboard() {
 
         {/* Filters & Table */}
         <div className="bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col">
-          <div className="p-4 border-b bg-muted/20 flex items-center justify-between">
+          <div className="p-4 border-b bg-muted/20 flex items-center justify-between gap-4">
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input 
@@ -115,6 +120,19 @@ export default function CrmDashboard() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 bg-background h-9"
               />
+            </div>
+            <div className="w-56 shrink-0">
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <SelectTrigger className="h-9 bg-background">
+                  <SelectValue placeholder="Project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Projects</SelectItem>
+                  {projects?.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
