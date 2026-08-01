@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, plotsTable, activityLogsTable, eq, sql, and } from "@workspace/db";
+import { db, plotsTable, projectsTable, activityLogsTable, eq, sql, and } from "@workspace/db";
 import {
   CreatePlotBody,
   UpdatePlotBody,
@@ -56,6 +56,11 @@ router.get("/plots", async (req, res): Promise<void> => {
     conditions.push(eq(plotsTable.plotFacing, params.plotFacing));
   }
 
+  const rawProjectId = Number(req.query.projectId);
+  if (Number.isFinite(rawProjectId) && rawProjectId > 0) {
+    conditions.push(eq(plotsTable.projectId, rawProjectId));
+  }
+
   const plots =
     conditions.length > 0
       ? await db
@@ -68,6 +73,7 @@ router.get("/plots", async (req, res): Promise<void> => {
   const result = plots.map((p) => ({
     id: p.id,
     plotNumber: p.plotNumber,
+    projectId: p.projectId,
     widthMtr: Number(p.widthMtr),
     lengthMtr: Number(p.lengthMtr),
     areaSqMtr: Number(p.areaSqMtr),
@@ -193,6 +199,7 @@ router.get("/plots/:id", async (req, res): Promise<void> => {
   res.json({
     id: plot.id,
     plotNumber: plot.plotNumber,
+    projectId: plot.projectId,
     widthMtr: Number(plot.widthMtr),
     lengthMtr: Number(plot.lengthMtr),
     areaSqMtr: Number(plot.areaSqMtr),
@@ -216,10 +223,39 @@ router.post("/plots", async (req, res): Promise<void> => {
 
   const data = parsed.data;
 
+  const rawProjectId = Number(req.body?.projectId);
+  if (!Number.isFinite(rawProjectId) || rawProjectId <= 0) {
+    res.status(400).json({ error: "A project must be selected for this plot." });
+    return;
+  }
+
+  const [project] = await db
+    .select()
+    .from(projectsTable)
+    .where(eq(projectsTable.id, rawProjectId));
+
+  if (!project) {
+    res.status(400).json({ error: "Selected project does not exist." });
+    return;
+  }
+
+  const [{ existingCount }] = await db
+    .select({ existingCount: sql<number>`count(*)::int` })
+    .from(plotsTable)
+    .where(eq(plotsTable.projectId, rawProjectId));
+
+  if (Number(existingCount) >= project.maxPlots) {
+    res.status(400).json({
+      error: `This project has reached its capacity of ${project.maxPlots} plots.`,
+    });
+    return;
+  }
+
   const [plot] = await db
     .insert(plotsTable)
     .values({
       plotNumber: data.plotNumber,
+      projectId: rawProjectId,
       widthMtr: String(data.widthMtr),
       lengthMtr: String(data.lengthMtr),
       areaSqMtr: String(data.areaSqMtr),
@@ -244,6 +280,7 @@ router.post("/plots", async (req, res): Promise<void> => {
   res.status(201).json({
     id: plot.id,
     plotNumber: plot.plotNumber,
+    projectId: plot.projectId,
     widthMtr: Number(plot.widthMtr),
     lengthMtr: Number(plot.lengthMtr),
     areaSqMtr: Number(plot.areaSqMtr),
@@ -319,6 +356,7 @@ router.patch("/plots/:id", async (req, res): Promise<void> => {
   res.json({
     id: plot.id,
     plotNumber: plot.plotNumber,
+    projectId: plot.projectId,
     widthMtr: Number(plot.widthMtr),
     lengthMtr: Number(plot.lengthMtr),
     areaSqMtr: Number(plot.areaSqMtr),
