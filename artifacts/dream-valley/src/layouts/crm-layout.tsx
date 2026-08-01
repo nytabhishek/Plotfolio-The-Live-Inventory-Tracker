@@ -1,7 +1,7 @@
 import React from 'react';
 import { useGetMe, useLogout } from '@workspace/api-client-react';
 import { Redirect, Link, useLocation } from 'wouter';
-import { LogOut, LayoutDashboard, Map, Hash, Clock, Plus, Loader2 } from 'lucide-react';
+import { LogOut, LayoutDashboard, Map, Hash, Clock, Plus, Loader2, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function CrmLayout({ children }: { children: React.ReactNode }) {
@@ -28,6 +28,7 @@ export function CrmLayout({ children }: { children: React.ReactNode }) {
   };
 
   const navItems = [
+    { label: 'Projects', href: '/crm/projects', icon: Building2 },
     { label: 'Inventory', href: '/crm', icon: LayoutDashboard },
     { label: 'Add Plot', href: '/crm/add-plot', icon: Plus },
     { label: 'RM Codes', href: '/crm/rm-codes', icon: Hash },
