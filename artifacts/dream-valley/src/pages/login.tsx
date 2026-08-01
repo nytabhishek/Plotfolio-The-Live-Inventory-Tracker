@@ -1,6 +1,5 @@
 import React from 'react';
 import { useLoginCrm, useLoginRm, useGetMe } from '@workspace/api-client-react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,7 +25,6 @@ export default function LoginPage() {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const queryClient = useQueryClient();
   const crmLogin = useLoginCrm();
   const salesLogin = useLoginRm();
 
@@ -50,8 +48,7 @@ export default function LoginPage() {
 
   const onCrmSubmit = (data: z.infer<typeof crmSchema>) => {
     crmLogin.mutate({ data }, {
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      onSuccess: () => {
         setLocation('/crm');
       },
       onError: (err) => {
@@ -60,10 +57,9 @@ export default function LoginPage() {
     });
   };
 
- const onSalesSubmit = (data: z.infer<typeof salesSchema>) => {
+  const onSalesSubmit = (data: z.infer<typeof salesSchema>) => {
     salesLogin.mutate({ data }, {
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      onSuccess: () => {
         setLocation('/sales');
       },
       onError: (err) => {
@@ -79,7 +75,7 @@ export default function LoginPage() {
           <div className="mx-auto h-16 w-16 bg-primary rounded-xl flex items-center justify-center mb-6 shadow-md">
             <Building2 className="h-8 w-8 text-secondary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-primary">Dream Valley</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-primary">PlotFolio</h1>
           <p className="text-muted-foreground mt-2">Live Inventory Tracker</p>
         </div>
 
@@ -162,7 +158,7 @@ export default function LoginPage() {
         </div>
         
         <div className="mt-8 text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Dream Valley Properties. Authorized Personnel Only.
+          &copy; {new Date().getFullYear()} PlotFolio. Authorized Personnel Only.
         </div>
       </div>
     </div>
