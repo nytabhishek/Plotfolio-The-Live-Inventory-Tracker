@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGetPlots, PlotPlotFacing, PlotPlcType, PlotStatus, getGetPlotsQueryKey } from '@workspace/api-client-react';
+import { useProjects } from '@/hooks/use-projects';
 import { SalesLayout } from '@/layouts/sales-layout';
 import { usePlotEvents } from '@/hooks/use-plot-events';
 import { Loader2, Search, SlidersHorizontal, Map } from 'lucide-react';
@@ -16,10 +17,13 @@ export default function SalesDashboard() {
   const [facingFilter, setFacingFilter] = useState<string>('All');
   const [minArea, setMinArea] = useState<string>('');
   const [maxArea, setMaxArea] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
 
+  const { data: projects } = useProjects();
   const { data: plots, isLoading } = useGetPlots({ status: PlotStatus.Available });
 
   const filteredPlots = plots?.filter(p => {
+    if (selectedProjectId !== 'all' && String((p as any).projectId) !== selectedProjectId) return false;
     if (searchTerm && !p.plotNumber.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     if (plcFilter !== 'All' && p.plcType !== plcFilter) return false;
     if (facingFilter !== 'All' && p.plotFacing !== facingFilter) return false;
@@ -48,6 +52,20 @@ export default function SalesDashboard() {
             </div>
             
             <div className="flex gap-4 overflow-x-auto pb-2 md:pb-0">
+              <div className="w-48 shrink-0">
+                <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Projects</SelectItem>
+                    {projects?.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="w-36 shrink-0">
                 <Select value={plcFilter} onValueChange={setPlcFilter}>
                   <SelectTrigger className="h-10">
