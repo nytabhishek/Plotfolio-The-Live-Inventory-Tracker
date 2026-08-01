@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreatePlot, PlotInputPlotFacing, PlotInputPlcType, PlotInputStatus, getGetPlotsQueryKey, getGetPlotStatsQueryKey } from '@workspace/api-client-react';
+import { useProjects } from '@/hooks/use-projects';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { CrmLayout } from '@/layouts/crm-layout';
@@ -15,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const plotSchema = z.object({
   plotNumber: z.string().min(1, 'Plot number is required'),
+  projectId: z.coerce.number().min(1, 'Project is required'),
   widthMtr: z.coerce.number().min(0.01, 'Must be positive'),
   lengthMtr: z.coerce.number().min(0.01, 'Must be positive'),
   areaSqMtr: z.coerce.number().min(0.01, 'Must be positive'),
@@ -26,6 +28,7 @@ const plotSchema = z.object({
 
 export default function CrmAddPlot() {
   const createPlot = useCreatePlot();
+  const { data: projects } = useProjects();
   const queryClient = useQueryClient();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
@@ -34,6 +37,7 @@ export default function CrmAddPlot() {
     resolver: zodResolver(plotSchema),
     defaultValues: {
       plotNumber: '',
+      projectId: 0,
       widthMtr: 0,
       lengthMtr: 0,
       areaSqMtr: 0,
@@ -57,7 +61,7 @@ export default function CrmAddPlot() {
   };
 
   const onSubmit = (data: z.infer<typeof plotSchema>) => {
-    createPlot.mutate({ data }, {
+    createPlot.mutate({ data: data as any }, {
       onSuccess: () => {
         toast({ title: 'Plot Created', description: `Plot ${data.plotNumber} added to inventory.` });
         queryClient.invalidateQueries({ queryKey: getGetPlotsQueryKey() });
@@ -92,6 +96,31 @@ export default function CrmAddPlot() {
                       <FormControl>
                         <Input placeholder="e.g. A-101" className="uppercase font-mono font-medium" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="projectId"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2 sm:col-span-1">
+                      <FormLabel className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">Project</FormLabel>
+                      <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={field.value ? String(field.value) : undefined}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select project" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {projects?.map((p) => (
+                            <SelectItem key={p.id} value={String(p.id)} disabled={p.plotCount >= p.maxPlots}>
+                              {p.name} ({p.plotCount}/{p.maxPlots})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
