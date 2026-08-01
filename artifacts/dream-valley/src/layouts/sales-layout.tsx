@@ -35,10 +35,10 @@ export function SalesLayout({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="h-8 w-8 bg-secondary rounded flex items-center justify-center text-secondary-foreground font-bold font-mono">
-              DV
+              PF
             </div>
             <div>
-              <h1 className="font-semibold uppercase tracking-wider text-sm">Dream Valley</h1>
+              <h1 className="font-semibold uppercase tracking-wider text-sm">PlotFolio</h1>
               <p className="text-xs text-primary-foreground/70">Sales Dashboard</p>
             </div>
           </div>
