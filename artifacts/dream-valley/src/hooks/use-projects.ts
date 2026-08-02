@@ -31,3 +31,17 @@ export function useCreateProject() {
     },
   });
 }
+
+export function useRenameProject() {
+  const queryClient = useQueryClient();
+  return useMutation<Project, any, { id: number; name: string }>({
+    mutationFn: ({ id, name }) =>
+      customFetch<Project>(`/api/projects/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PROJECTS_QUERY_KEY });
+    },
+  });
+}
