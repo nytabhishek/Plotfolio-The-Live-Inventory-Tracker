@@ -95,4 +95,47 @@ router.post("/projects", async (req, res): Promise<void> => {
   }
 });
 
+// Rename a project. CRM only.
+router.patch("/projects/:id", async (req, res): Promise<void> => {
+  if (!requireCrm(req, res)) return;
+
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) {
+    res.status(400).json({ error: "Invalid project id" });
+    return;
+  }
+
+  const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+  if (!name) {
+    res.status(400).json({ error: "Project name is required" });
+    return;
+  }
+
+  try {
+    const [project] = await db
+      .update(projectsTable)
+      .set({ name })
+      .where(eq(projectsTable.id, id))
+      .returning();
+
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    res.json({
+      id: project.id,
+      name: project.name,
+      maxPlots: project.maxPlots,
+      createdAt: project.createdAt.toISOString(),
+    });
+  } catch (err: any) {
+    if (err?.code === "23505") {
+      res.status(400).json({ error: "A project with this name already exists" });
+      return;
+    }
+    throw err;
+  }
+});
+
 export default router;
