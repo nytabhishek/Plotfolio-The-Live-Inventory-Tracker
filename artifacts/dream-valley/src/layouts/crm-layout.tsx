@@ -1,13 +1,15 @@
 import React from 'react';
 import { useGetMe, useLogout } from '@workspace/api-client-react';
 import { Redirect, Link, useLocation } from 'wouter';
-import { LogOut, LayoutDashboard, Map, Hash, Clock, Plus, Loader2, Building2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { LogOut, Hash, Clock, Loader2, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function CrmLayout({ children }: { children: React.ReactNode }) {
   const { data: session, isLoading } = useGetMe();
   const logout = useLogout();
   const [location, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -23,14 +25,17 @@ export function CrmLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     logout.mutate({}, {
-      onSuccess: () => setLocation('/')
+      onSuccess: async () => {
+        // Clear the cached session so the login page doesn't think we're
+        // still authenticated and immediately redirect back.
+        await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        setLocation('/');
+      },
     });
   };
 
   const navItems = [
-    { label: 'Projects', href: '/crm/projects', icon: Building2 },
-    { label: 'Inventory', href: '/crm', icon: LayoutDashboard },
-    { label: 'Add Plot', href: '/crm/add-plot', icon: Plus },
+    { label: 'Projects', href: '/crm', icon: Building2 },
     { label: 'RM Codes', href: '/crm/rm-codes', icon: Hash },
     { label: 'Activity Logs', href: '/crm/activity-logs', icon: Clock },
   ];
@@ -73,7 +78,7 @@ export function CrmLayout({ children }: { children: React.ReactNode }) {
               <p className="text-xs text-sidebar-foreground/60 truncate">{session.role}</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             disabled={logout.isPending}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded transition-colors"
