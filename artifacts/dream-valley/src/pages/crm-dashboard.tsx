@@ -1,219 +1,213 @@
 import React, { useState } from 'react';
-import { useGetPlots, useGetPlotStats, useDeletePlot, getGetPlotsQueryKey, getGetPlotStatsQueryKey, Plot } from '@workspace/api-client-react';
-import { useProjects } from '@/hooks/use-projects';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Link } from 'wouter';
 import { CrmLayout } from '@/layouts/crm-layout';
-import { usePlotEvents } from '@/hooks/use-plot-events';
-import { Loader2, Download, Search, Edit2, Trash2, Map } from 'lucide-react';
+import { useProjects, useCreateProject, useRenameProject } from '@/hooks/use-projects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { StatusBadge, PlcBadge } from '@/components/badges';
-import { useToast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { EditPlotDialog } from '@/components/edit-plot-dialog';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Loader2, Plus, Building2, Pencil, ChevronRight } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+const MAX_PROJECTS = 5;
 
 export default function CrmDashboard() {
-  // Subscribe to live events
-  usePlotEvents();
-  
-  const { data: stats, isLoading: statsLoading } = useGetPlotStats();
-  const { data: plots, isLoading: plotsLoading } = useGetPlots();
-  const { data: projects } = useProjects();
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const [plotToDelete, setPlotToDelete] = useState<number | null>(null);
-  const [plotToEdit, setPlotToEdit] = useState<Plot | null>(null);
-  
-  const deletePlot = useDeletePlot();
-  const queryClient = useQueryClient();
+  const { data: projects, isLoading } = useProjects();
+  const createProject = useCreateProject();
+  const renameProject = useRenameProject();
   const { toast } = useToast();
 
-  const handleExport = () => {
-    window.location.href = import.meta.env.BASE_URL + 'api/plots/export';
-  };
+  const [addOpen, setAddOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [maxPlots, setMaxPlots] = useState('200');
 
-  const handleDelete = () => {
-    if (plotToDelete) {
-      deletePlot.mutate({ id: plotToDelete }, {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetPlotsQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getGetPlotStatsQueryKey() });
-          toast({ title: 'Plot deleted', description: 'The plot has been removed from inventory.' });
-          setPlotToDelete(null);
-        },
-        onError: (err) => {
-          toast({ title: 'Error', description: err.error, variant: 'destructive' });
-          setPlotToDelete(null);
-        }
-      });
+  const [renameTarget, setRenameTarget] = useState<{ id: number; name: string } | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  const atLimit = (projects?.length ?? 0) >= MAX_PROJECTS;
+
+  const handleCreate = () => {
+    if (!name.trim()) {
+      toast({ title: 'Project name is required', variant: 'destructive' });
+      return;
     }
+    createProject.mutate(
+      { name: name.trim(), maxPlots: Number(maxPlots) || 200 },
+      {
+        onSuccess: () => {
+          toast({ title: 'Project created', description: `${name} has been added.` });
+          setName('');
+          setMaxPlots('200');
+          setAddOpen(false);
+        },
+        onError: (err: any) => {
+          toast({ title: 'Failed to create project', description: err?.data?.error ?? err.message, variant: 'destructive' });
+        },
+      },
+    );
   };
 
-  const filteredPlots = plots?.filter(p => {
-    if (selectedProjectId !== 'all' && String((p as any).projectId) !== selectedProjectId) return false;
-    return p.plotNumber.toLowerCase().includes(searchTerm.toLowerCase());
-  });
+  const openRename = (e: React.MouseEvent, project: { id: number; name: string }) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setRenameTarget(project);
+    setRenameValue(project.name);
+  };
+
+  const handleRename = () => {
+    if (!renameTarget || !renameValue.trim()) return;
+    renameProject.mutate(
+      { id: renameTarget.id, name: renameValue.trim() },
+      {
+        onSuccess: () => {
+          toast({ title: 'Project renamed' });
+          setRenameTarget(null);
+        },
+        onError: (err: any) => {
+          toast({ title: 'Failed to rename project', description: err?.data?.error ?? err.message, variant: 'destructive' });
+        },
+      },
+    );
+  };
 
   return (
     <CrmLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Inventory Management</h1>
-            <p className="text-sm text-muted-foreground mt-1">Live overview of all plots and their current status.</p>
+            <h1 className="text-2xl font-bold text-foreground">Projects</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Select a project to manage its inventory.
+            </p>
           </div>
-          <Button onClick={handleExport} variant="outline" className="gap-2 font-semibold">
-            <Download className="h-4 w-4" />
-            Export Excel
-          </Button>
-        </div>
 
-        {/* Stats Cards */}
-        {statsLoading ? (
-          <div className="grid grid-cols-4 gap-4">
-            {[1,2,3,4].map(i => <div key={i} className="h-28 bg-card border rounded-xl animate-pulse" />)}
-          </div>
-        ) : stats ? (
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-card border rounded-xl p-5 shadow-sm">
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Plots</div>
-              <div className="text-3xl font-bold text-foreground font-mono">{stats.total}</div>
-            </div>
-            <div className="bg-card border rounded-xl p-5 shadow-sm border-l-4 border-l-green-500">
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">Available</div>
-              <div className="text-3xl font-bold text-green-700 font-mono">{stats.available}</div>
-            </div>
-            <div className="bg-card border rounded-xl p-5 shadow-sm border-l-4 border-l-primary">
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">Unavailable</div>
-              <div className="text-3xl font-bold text-primary font-mono">{stats.allotted + stats.freeze + stats.hold}</div>
-              <div className="text-xs text-muted-foreground mt-1 font-medium">
-                Allotted: {stats.allotted} | Freeze: {stats.freeze} | Hold: {stats.hold}
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button disabled={atLimit} className="gap-2 font-semibold">
+                <Plus className="h-4 w-4" />
+                Add Project
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Project</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-1.5">
+                  <Label>Project Name</Label>
+                  <Input
+                    placeholder="e.g. Green Meadows Phase 2"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Plot Capacity</Label>
+                  <Input
+                    type="number"
+                    value={maxPlots}
+                    onChange={(e) => setMaxPlots(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
-            <div className="bg-card border rounded-xl p-5 shadow-sm">
-              <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-1">PLC / Non-PLC</div>
-              <div className="text-3xl font-bold text-foreground font-mono">{stats.plc} <span className="text-lg text-muted-foreground">/ {stats.nonPlc}</span></div>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Filters & Table */}
-        <div className="bg-card border rounded-xl shadow-sm overflow-hidden flex flex-col">
-          <div className="p-4 border-b bg-muted/20 flex items-center justify-between gap-4">
-            <div className="relative w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search plot number..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 bg-background h-9"
-              />
-            </div>
-            <div className="w-56 shrink-0">
-              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                <SelectTrigger className="h-9 bg-background">
-                  <SelectValue placeholder="Project" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Projects</SelectItem>
-                  {projects?.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-muted/40 uppercase text-xs font-semibold text-muted-foreground tracking-wider border-b">
-                <tr>
-                  <th className="px-6 py-4">Plot No.</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Type</th>
-                  <th className="px-6 py-4 text-right">Area (SQ YRD)</th>
-                  <th className="px-6 py-4">Facing</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {plotsLoading ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
-                    </td>
-                  </tr>
-                ) : filteredPlots?.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                      <Map className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                      No plots found matching your criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredPlots?.map(plot => (
-                    <tr key={plot.id} className="hover:bg-muted/10 transition-colors">
-                      <td className="px-6 py-3 font-semibold text-foreground">{plot.plotNumber}</td>
-                      <td className="px-6 py-3"><StatusBadge status={plot.status} /></td>
-                      <td className="px-6 py-3"><PlcBadge type={plot.plcType} /></td>
-                      <td className="px-6 py-3 text-right font-mono">{plot.areaSqYrd.toFixed(2)}</td>
-                      <td className="px-6 py-3">{plot.plotFacing}</td>
-                      <td className="px-6 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => setPlotToEdit(plot)}>
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => setPlotToDelete(plot.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreate} disabled={createProject.isPending}>
+                  {createProject.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Create Project
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
+
+        {atLimit && (
+          <div className="text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3">
+            You've reached the maximum of {MAX_PROJECTS} projects.
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-36 bg-card border rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : !projects || projects.length === 0 ? (
+          <div className="bg-card border rounded-xl p-12 text-center text-muted-foreground">
+            <Building2 className="h-10 w-10 mx-auto mb-3 opacity-20" />
+            <p className="font-medium">No projects yet</p>
+            <p className="text-sm mt-1">Create your first project to start adding plots.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {projects.map((project) => {
+              const pct = Math.min(100, Math.round((project.plotCount / project.maxPlots) * 100));
+              return (
+                <Link key={project.id} href={`/crm/inventory/${project.id}`}>
+                  <div className="bg-card border rounded-xl shadow-sm p-5 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Building2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-foreground">{project.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {project.plotCount} / {project.maxPlots} plots
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={(e) => openRename(e, project)}
+                          className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          title="Rename project"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      <AlertDialog open={!!plotToDelete} onOpenChange={(open) => !open && setPlotToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the plot from the inventory.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletePlot.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={deletePlot.isPending} className="bg-destructive hover:bg-destructive/90">
-              {deletePlot.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Delete Plot
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {plotToEdit && (
-        <EditPlotDialog 
-          plot={plotToEdit} 
-          open={!!plotToEdit} 
-          onOpenChange={(open) => !open && setPlotToEdit(null)} 
-        />
-      )}
+      <Dialog open={!!renameTarget} onOpenChange={(open) => !open && setRenameTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5 py-2">
+            <Label>Project Name</Label>
+            <Input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameTarget(null)}>Cancel</Button>
+            <Button onClick={handleRename} disabled={renameProject.isPending}>
+              {renameProject.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </CrmLayout>
   );
 }
