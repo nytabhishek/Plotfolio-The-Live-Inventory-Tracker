@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreatePlot, PlotInputPlotFacing, PlotInputPlcType, PlotInputStatus, getGetPlotsQueryKey, getGetPlotStatsQueryKey } from '@workspace/api-client-react';
 import { useProjects } from '@/hooks/use-projects';
 import { useQueryClient } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
+import { Link, useLocation, useParams } from 'wouter';
 import { CrmLayout } from '@/layouts/crm-layout';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const plotSchema = z.object({
@@ -27,8 +27,10 @@ const plotSchema = z.object({
 });
 
 export default function CrmAddPlot() {
+  const { projectId } = useParams<{ projectId: string }>();
   const createPlot = useCreatePlot();
   const { data: projects } = useProjects();
+  const project = projects?.find((p) => String(p.id) === projectId);
   const queryClient = useQueryClient();
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
@@ -37,7 +39,7 @@ export default function CrmAddPlot() {
     resolver: zodResolver(plotSchema),
     defaultValues: {
       plotNumber: '',
-      projectId: 0,
+      projectId: Number(projectId) || 0,
       widthMtr: 0,
       lengthMtr: 0,
       areaSqMtr: 0,
@@ -47,6 +49,13 @@ export default function CrmAddPlot() {
       status: PlotInputStatus.Available
     }
   });
+
+  // Keep the (hidden) projectId field in sync with the URL param.
+  useEffect(() => {
+    if (projectId) {
+      form.setValue('projectId', Number(projectId));
+    }
+  }, [projectId]);
 
   // Helper to auto-calculate areas
   const calculateAreas = () => {
@@ -66,7 +75,8 @@ export default function CrmAddPlot() {
         toast({ title: 'Plot Created', description: `Plot ${data.plotNumber} added to inventory.` });
         queryClient.invalidateQueries({ queryKey: getGetPlotsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetPlotStatsQueryKey() });
-        setLocation('/crm');
+        queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+        setLocation(`/crm/inventory/${projectId}`);
       },
       onError: (err) => {
         toast({ title: 'Failed to create plot', description: err.error, variant: 'destructive' });
@@ -78,14 +88,20 @@ export default function CrmAddPlot() {
     <CrmLayout>
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
+          <Link href={`/crm/inventory/${projectId}`} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors mb-3">
+            <ArrowLeft className="h-4 w-4" />
+            Back to {project?.name ?? 'Project'}
+          </Link>
           <h1 className="text-2xl font-bold text-foreground">Add New Plot</h1>
-          <p className="text-sm text-muted-foreground mt-1">Enter specifications to register a new plot in the inventory.</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Enter specifications to register a new plot in <span className="font-semibold">{project?.name ?? 'this project'}</span>.
+          </p>
         </div>
 
         <div className="bg-card border rounded-xl shadow-sm p-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              
+
               <div className="grid grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
@@ -101,31 +117,11 @@ export default function CrmAddPlot() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="projectId"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2 sm:col-span-1">
-                      <FormLabel className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">Project</FormLabel>
-                      <Select onValueChange={(v) => field.onChange(Number(v))} defaultValue={field.value ? String(field.value) : undefined}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select project" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {projects?.map((p) => (
-                            <SelectItem key={p.id} value={String(p.id)} disabled={p.plotCount >= p.maxPlots}>
-                              {p.name} ({p.plotCount}/{p.maxPlots})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
+                <FormItem className="col-span-2 sm:col-span-1">
+                  <FormLabel className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">Project</FormLabel>
+                  <Input value={project?.name ?? '...'} disabled className="bg-muted/30 font-medium" />
+                </FormItem>
+
                 <FormField
                   control={form.control}
                   name="status"
@@ -261,7 +257,7 @@ export default function CrmAddPlot() {
               </div>
 
               <div className="pt-6 border-t flex justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => setLocation('/crm')}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setLocation(`/crm/inventory/${projectId}`)}>Cancel</Button>
                 <Button type="submit" disabled={createPlot.isPending} className="font-semibold uppercase tracking-wider">
                   {createPlot.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                   Register Plot
