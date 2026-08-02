@@ -25,10 +25,13 @@ export function CrmLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     logout.mutate({}, {
-      onSuccess: async () => {
-        // Clear the cached session so the login page doesn't think we're
-        // still authenticated and immediately redirect back.
-        await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      onSuccess: () => {
+        // Explicitly clear the cached session — invalidateQueries alone
+        // keeps the old "logged in" data around when the next fetch
+        // errors with 401, since React Query preserves last-known-good
+        // data through an error transition.
+        queryClient.setQueryData(['/api/auth/me'], null);
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
         setLocation('/');
       },
     });
