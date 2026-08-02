@@ -26,8 +26,9 @@ export function SalesLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     logout.mutate({}, {
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      onSuccess: () => {
+        queryClient.setQueryData(['/api/auth/me'], null);
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
         setLocation('/');
       },
     });
