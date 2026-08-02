@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGetMe, useLogout } from '@workspace/api-client-react';
 import { Redirect, useLocation } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import { LogOut, Loader2, Radio } from 'lucide-react';
 import { usePlotEvents } from '@/hooks/use-plot-events';
 
@@ -9,6 +10,7 @@ export function SalesLayout({ children }: { children: React.ReactNode }) {
   const logout = useLogout();
   const [location, setLocation] = useLocation();
   const { isLive } = usePlotEvents();
+  const queryClient = useQueryClient();
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -24,7 +26,10 @@ export function SalesLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     logout.mutate({}, {
-      onSuccess: () => setLocation('/')
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        setLocation('/');
+      },
     });
   };
 
