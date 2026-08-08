@@ -13,6 +13,48 @@ import ExcelJS from "exceljs";
 
 const router: IRouter = Router();
 
+// Shape the DB row consistently for every response (list, single, create, update).
+function serializePlot(plot: typeof plotsTable.$inferSelect) {
+  return {
+    id: plot.id,
+    plotNumber: plot.plotNumber,
+    projectId: plot.projectId,
+    widthMtr: Number(plot.widthMtr),
+    lengthMtr: Number(plot.lengthMtr),
+    areaSqMtr: Number(plot.areaSqMtr),
+    areaSqYrd: Number(plot.areaSqYrd),
+    plotFacing: plot.plotFacing,
+    plcType: plot.plcType,
+    status: plot.status,
+    clientName: plot.clientName,
+    clientPhone: plot.clientPhone,
+    clientEmail: plot.clientEmail,
+    loginRate: plot.loginRate !== null ? Number(plot.loginRate) : null,
+    companyRate: plot.companyRate !== null ? Number(plot.companyRate) : null,
+    paymentDetails: plot.paymentDetails,
+    allotmentDate: plot.allotmentDate ? plot.allotmentDate.toISOString() : null,
+    bbaDate: plot.bbaDate ? plot.bbaDate.toISOString() : null,
+    allotmentLetterDeliveredDate: plot.allotmentLetterDeliveredDate
+      ? plot.allotmentLetterDeliveredDate.toISOString()
+      : null,
+    bbaDeliveredDate: plot.bbaDeliveredDate ? plot.bbaDeliveredDate.toISOString() : null,
+    remarks: plot.remarks,
+    createdAt: plot.createdAt.toISOString(),
+    updatedAt: plot.updatedAt.toISOString(),
+  };
+}
+
+// Parse an optional date field coming from the client:
+//  - undefined  -> field not being touched, leave out of the update
+//  - ""  / null -> explicitly clear the date
+//  - "2026-01-01" -> set the date
+function parseOptionalDate(value: unknown): Date | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === "") return null;
+  const d = new Date(value as string);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
 // Helper: require CRM session
 function requireCrm(req: any, res: any): boolean {
   if (!req.session?.userId || req.session.userType !== "crm") {
@@ -70,20 +112,7 @@ router.get("/plots", async (req, res): Promise<void> => {
           .orderBy(plotsTable.plotNumber)
       : await db.select().from(plotsTable).orderBy(plotsTable.plotNumber);
 
-  const result = plots.map((p) => ({
-    id: p.id,
-    plotNumber: p.plotNumber,
-    projectId: p.projectId,
-    widthMtr: Number(p.widthMtr),
-    lengthMtr: Number(p.lengthMtr),
-    areaSqMtr: Number(p.areaSqMtr),
-    areaSqYrd: Number(p.areaSqYrd),
-    plotFacing: p.plotFacing,
-    plcType: p.plcType,
-    status: p.status,
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
-  }));
+  const result = plots.map(serializePlot);
 
   res.json(result);
 });
@@ -125,10 +154,19 @@ router.get("/plots/stats", async (req, res): Promise<void> => {
 router.get("/plots/export", async (req, res): Promise<void> => {
   if (!requireCrm(req, res)) return;
 
-  const plots = await db.select().from(plotsTable).orderBy(plotsTable.plotNumber);
+  const rawProjectId = Number(req.query.projectId);
+  const hasProjectFilter = Number.isFinite(rawProjectId) && rawProjectId > 0;
+
+  const plots = hasProjectFilter
+    ? await db
+        .select()
+        .from(plotsTable)
+        .where(eq(plotsTable.projectId, rawProjectId))
+        .orderBy(plotsTable.plotNumber)
+    : await db.select().from(plotsTable).orderBy(plotsTable.plotNumber);
 
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet("Dream Valley Inventory");
+  const sheet = workbook.addWorksheet("PlotFolio Inventory");
 
   sheet.columns = [
     { header: "Plot Number", key: "plotNumber", width: 15 },
@@ -139,6 +177,17 @@ router.get("/plots/export", async (req, res): Promise<void> => {
     { header: "Plot Facing", key: "plotFacing", width: 14 },
     { header: "PLC Type", key: "plcType", width: 12 },
     { header: "Status", key: "status", width: 12 },
+    { header: "Client Name", key: "clientName", width: 20 },
+    { header: "Client Phone", key: "clientPhone", width: 16 },
+    { header: "Client Email", key: "clientEmail", width: 24 },
+    { header: "Login Rate", key: "loginRate", width: 14 },
+    { header: "Company Rate", key: "companyRate", width: 14 },
+    { header: "Payment Details", key: "paymentDetails", width: 24 },
+    { header: "Allotment Date", key: "allotmentDate", width: 16 },
+    { header: "BBA Date", key: "bbaDate", width: 16 },
+    { header: "Allotment Letter Delivered", key: "allotmentLetterDeliveredDate", width: 22 },
+    { header: "BBA Delivered", key: "bbaDeliveredDate", width: 16 },
+    { header: "Remarks", key: "remarks", width: 28 },
   ];
 
   // Style header row
@@ -150,6 +199,8 @@ router.get("/plots/export", async (req, res): Promise<void> => {
   };
   sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
 
+  const fmtDate = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
+
   for (const plot of plots) {
     sheet.addRow({
       plotNumber: plot.plotNumber,
@@ -160,6 +211,17 @@ router.get("/plots/export", async (req, res): Promise<void> => {
       plotFacing: plot.plotFacing,
       plcType: plot.plcType,
       status: plot.status,
+      clientName: plot.clientName ?? "",
+      clientPhone: plot.clientPhone ?? "",
+      clientEmail: plot.clientEmail ?? "",
+      loginRate: plot.loginRate !== null ? Number(plot.loginRate) : "",
+      companyRate: plot.companyRate !== null ? Number(plot.companyRate) : "",
+      paymentDetails: plot.paymentDetails ?? "",
+      allotmentDate: fmtDate(plot.allotmentDate),
+      bbaDate: fmtDate(plot.bbaDate),
+      allotmentLetterDeliveredDate: fmtDate(plot.allotmentLetterDeliveredDate),
+      bbaDeliveredDate: fmtDate(plot.bbaDeliveredDate),
+      remarks: plot.remarks ?? "",
     });
   }
 
@@ -169,7 +231,7 @@ router.get("/plots/export", async (req, res): Promise<void> => {
   );
   res.setHeader(
     "Content-Disposition",
-    `attachment; filename="dream-valley-inventory-${new Date().toISOString().slice(0, 10)}.xlsx"`,
+    `attachment; filename="plotfolio-inventory-${new Date().toISOString().slice(0, 10)}.xlsx"`,
   );
 
   const buffer = await workbook.xlsx.writeBuffer();
@@ -196,20 +258,7 @@ router.get("/plots/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json({
-    id: plot.id,
-    plotNumber: plot.plotNumber,
-    projectId: plot.projectId,
-    widthMtr: Number(plot.widthMtr),
-    lengthMtr: Number(plot.lengthMtr),
-    areaSqMtr: Number(plot.areaSqMtr),
-    areaSqYrd: Number(plot.areaSqYrd),
-    plotFacing: plot.plotFacing,
-    plcType: plot.plcType,
-    status: plot.status,
-    createdAt: plot.createdAt.toISOString(),
-    updatedAt: plot.updatedAt.toISOString(),
-  });
+  res.json(serializePlot(plot));
 });
 
 router.post("/plots", async (req, res): Promise<void> => {
@@ -277,20 +326,7 @@ router.post("/plots", async (req, res): Promise<void> => {
 
   broadcastPlotChange("create", plot.id);
 
-  res.status(201).json({
-    id: plot.id,
-    plotNumber: plot.plotNumber,
-    projectId: plot.projectId,
-    widthMtr: Number(plot.widthMtr),
-    lengthMtr: Number(plot.lengthMtr),
-    areaSqMtr: Number(plot.areaSqMtr),
-    areaSqYrd: Number(plot.areaSqYrd),
-    plotFacing: plot.plotFacing,
-    plcType: plot.plcType,
-    status: plot.status,
-    createdAt: plot.createdAt.toISOString(),
-    updatedAt: plot.updatedAt.toISOString(),
-  });
+  res.status(201).json(serializePlot(plot));
 });
 
 router.patch("/plots/:id", async (req, res): Promise<void> => {
@@ -331,6 +367,30 @@ router.patch("/plots/:id", async (req, res): Promise<void> => {
   if (data.plcType !== undefined) updateValues.plcType = data.plcType;
   if (data.status !== undefined) updateValues.status = data.status;
 
+  // --- CRM fields: not part of the generated schema, read directly off the
+  // raw request body. Empty strings clear the field; undefined leaves it untouched.
+  const body = req.body ?? {};
+  if (body.clientName !== undefined) updateValues.clientName = body.clientName || null;
+  if (body.clientPhone !== undefined) updateValues.clientPhone = body.clientPhone || null;
+  if (body.clientEmail !== undefined) updateValues.clientEmail = body.clientEmail || null;
+  if (body.loginRate !== undefined) {
+    updateValues.loginRate = body.loginRate === "" || body.loginRate === null ? null : String(body.loginRate);
+  }
+  if (body.companyRate !== undefined) {
+    updateValues.companyRate = body.companyRate === "" || body.companyRate === null ? null : String(body.companyRate);
+  }
+  if (body.paymentDetails !== undefined) updateValues.paymentDetails = body.paymentDetails || null;
+  if (body.remarks !== undefined) updateValues.remarks = body.remarks || null;
+
+  const allotmentDate = parseOptionalDate(body.allotmentDate);
+  if (allotmentDate !== undefined) updateValues.allotmentDate = allotmentDate;
+  const bbaDate = parseOptionalDate(body.bbaDate);
+  if (bbaDate !== undefined) updateValues.bbaDate = bbaDate;
+  const allotmentLetterDeliveredDate = parseOptionalDate(body.allotmentLetterDeliveredDate);
+  if (allotmentLetterDeliveredDate !== undefined) updateValues.allotmentLetterDeliveredDate = allotmentLetterDeliveredDate;
+  const bbaDeliveredDate = parseOptionalDate(body.bbaDeliveredDate);
+  if (bbaDeliveredDate !== undefined) updateValues.bbaDeliveredDate = bbaDeliveredDate;
+
   const [plot] = await db
     .update(plotsTable)
     .set(updateValues)
@@ -338,35 +398,28 @@ router.patch("/plots/:id", async (req, res): Promise<void> => {
     .returning();
 
   // Log activity
-  const changes: Record<string, { old: unknown; new: unknown }> = {};
+  const oldSnapshot: Record<string, unknown> = { status: oldPlot.status };
+  const newSnapshot: Record<string, unknown> = { status: plot.status };
   if (data.status && data.status !== oldPlot.status) {
-    changes.status = { old: oldPlot.status, new: data.status };
+    oldSnapshot.status = oldPlot.status;
+    newSnapshot.status = data.status;
+  }
+  if (body.clientName !== undefined && body.clientName !== oldPlot.clientName) {
+    oldSnapshot.clientName = oldPlot.clientName;
+    newSnapshot.clientName = plot.clientName;
   }
 
   await db.insert(activityLogsTable).values({
     userName: req.session.userName ?? "CRM",
     action: "Updated",
     plotNumber: plot.plotNumber,
-    oldData: JSON.stringify({ status: oldPlot.status }),
-    newData: JSON.stringify({ status: plot.status }),
+    oldData: JSON.stringify(oldSnapshot),
+    newData: JSON.stringify(newSnapshot),
   });
 
   broadcastPlotChange("update", plot.id);
 
-  res.json({
-    id: plot.id,
-    plotNumber: plot.plotNumber,
-    projectId: plot.projectId,
-    widthMtr: Number(plot.widthMtr),
-    lengthMtr: Number(plot.lengthMtr),
-    areaSqMtr: Number(plot.areaSqMtr),
-    areaSqYrd: Number(plot.areaSqYrd),
-    plotFacing: plot.plotFacing,
-    plcType: plot.plcType,
-    status: plot.status,
-    createdAt: plot.createdAt.toISOString(),
-    updatedAt: plot.updatedAt.toISOString(),
-  });
+  res.json(serializePlot(plot));
 });
 
 router.delete("/plots/:id", async (req, res): Promise<void> => {
