@@ -14,6 +14,20 @@ export const plotsTable = pgTable("plots", {
   plotFacing: text("plot_facing").notNull(),
   plcType: text("plc_type").notNull(),
   status: text("status").notNull().default("Available"),
+
+  // --- CRM fields (all optional — filled in as a plot moves through sale) ---
+  clientName: text("client_name"),
+  clientPhone: text("client_phone"),
+  clientEmail: text("client_email"),
+  loginRate: numeric("login_rate", { precision: 12, scale: 2 }),
+  companyRate: numeric("company_rate", { precision: 12, scale: 2 }),
+  paymentDetails: text("payment_details"),
+  allotmentDate: timestamp("allotment_date", { withTimezone: true }),
+  bbaDate: timestamp("bba_date", { withTimezone: true }),
+  allotmentLetterDeliveredDate: timestamp("allotment_letter_delivered_date", { withTimezone: true }),
+  bbaDeliveredDate: timestamp("bba_delivered_date", { withTimezone: true }),
+  remarks: text("remarks"),
+
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
