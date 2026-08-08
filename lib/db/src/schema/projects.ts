@@ -5,7 +5,7 @@ import { z } from "zod/v4";
 export const projectsTable = pgTable("projects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
-  maxPlots: integer("max_plots").notNull().default(200),
+  maxPlots: integer("max_plots").notNull().default(450),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
