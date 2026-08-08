@@ -157,6 +157,7 @@ export default function CrmProjectInventory() {
                 <tr>
                   <th className="px-6 py-4">Plot No.</th>
                   <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Client</th>
                   <th className="px-6 py-4">Type</th>
                   <th className="px-6 py-4 text-right">Area (SQ YRD)</th>
                   <th className="px-6 py-4">Facing</th>
@@ -166,13 +167,13 @@ export default function CrmProjectInventory() {
               <tbody className="divide-y">
                 {plotsLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
                     </td>
                   </tr>
                 ) : filteredPlots?.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                       <Map className="h-10 w-10 mx-auto mb-3 opacity-20" />
                       No plots found in this project yet.
                     </td>
@@ -182,6 +183,7 @@ export default function CrmProjectInventory() {
                     <tr key={plot.id} className="hover:bg-muted/10 transition-colors">
                       <td className="px-6 py-3 font-semibold text-foreground">{plot.plotNumber}</td>
                       <td className="px-6 py-3"><StatusBadge status={plot.status} /></td>
+                      <td className="px-6 py-3 text-muted-foreground">{(plot as any).clientName || '—'}</td>
                       <td className="px-6 py-3"><PlcBadge type={plot.plcType} /></td>
                       <td className="px-6 py-3 text-right font-mono">{plot.areaSqYrd.toFixed(2)}</td>
                       <td className="px-6 py-3">{plot.plotFacing}</td>
