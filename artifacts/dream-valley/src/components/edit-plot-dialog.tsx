@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PaymentHistory } from '@/components/payment-history';
 
 // Helper: DB stores ISO datetime strings (or null); <input type="date"> needs YYYY-MM-DD.
 function toDateInputValue(iso: string | null | undefined): string {
@@ -347,6 +348,8 @@ export function EditPlotDialog({ plot, open, onOpenChange }: EditPlotDialogProps
                 />
               </div>
             </div>
+
+            <PaymentHistory plotId={plot.id} />
 
             {/* --- Key Dates --- */}
             <div className="border-t pt-4">
