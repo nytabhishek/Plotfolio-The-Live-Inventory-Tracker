@@ -18,9 +18,9 @@ const isProd = process.env.NODE_ENV === "production";
 
 const app: Express = express();
 
-// Trust Replit's reverse proxy so Express reads X-Forwarded-Proto correctly.
-// Required for secure cookie detection and accurate IP logging in production.
-app.set("trust proxy", 1);
+// Trust the hosting platform's reverse proxy (Render) so Express
+// reads X-Forwarded-Proto correctly and secure cookies work.
+app.set("trust proxy", true);
 
 app.use(
   pinoHttp({
@@ -61,14 +61,15 @@ app.use(
       pruneSessionInterval: 60 * 60,
     }),
     secret: process.env.SESSION_SECRET,
+    proxy: true,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      // In production (HTTPS via proxy), mark cookie as secure.
-      // trust proxy must be set above for this to work correctly.
+      // HTTPS via proxy in production, so mark cookie as secure.
       secure: isProd,
-      sameSite: isProd ? "none" : "lax",
+      // Frontend and backend are served from the same domain.
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   }),
