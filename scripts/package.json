@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/pg": "^8",
     "tsx": "catalog:"
-    "@types/pg": "^8"
   }
 }
