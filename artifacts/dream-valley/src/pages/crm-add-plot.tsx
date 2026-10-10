@@ -107,10 +107,10 @@ export default function CrmAddPlot() {
                   control={form.control}
                   name="plotNumber"
                   render={({ field }) => (
-                    <FormItem className="col-span-2 sm:col-span-1">
-                      <FormLabel className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">Plot Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. A-101" className="uppercase font-mono font-medium" {...field} />
+                    <div className="col-span-2 sm:col-span-1 space-y-2">
+  <label className="text-sm leading-none text-xs uppercase tracking-wide font-semibold text-muted-foreground">Project</label>
+  <Input value={project?.name ?? '...'} disabled className="bg-muted/30 font-medium" />
+</div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
